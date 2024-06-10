@@ -1,18 +1,14 @@
 package main
 
 import (
-	"log"
+	"flag"
+	"fmt"
 	"net/url"
-	"os"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/PuerkitoBio/goquery"
 )
-
-var logf = log.Printf
-var logn = log.Println
-
-var runelen = utf8.RuneCountInString
 
 type xResult struct {
 	index   int
@@ -38,7 +34,7 @@ func getPinyin(r rune, i int, rch chan<- xResult) {
 }
 
 func getPinyins(words string) (pys []xResult) {
-	n := runelen(words)
+	n := utf8.RuneCountInString(words)
 	if n <= 0 {
 		return nil
 	}
@@ -62,14 +58,25 @@ func getPinyins(words string) (pys []xResult) {
 }
 
 func main() {
-	if len(os.Args) <= 1 {
+	ruby := flag.Bool(`ruby`, false, `生成 <ruby> HTML 内容`)
+	flag.Parse()
+
+	if flag.NArg() <= 0 {
 		return
 	}
 
-	words := os.Args[1]
-	allPys := getPinyins(words)
+	words := flag.Args()
+	allPys := getPinyins(strings.Join(words, ""))
 
-	for _, pys := range allPys {
-		logf("%s:\t%s\n", pys.char, pys.pinyins)
+	if !*ruby {
+		for _, pys := range allPys {
+			fmt.Printf("%s: %s\n", pys.char, pys.pinyins)
+		}
+	} else {
+		for _, pys := range allPys {
+			for _, p := range pys.pinyins {
+				fmt.Printf("<ruby>%s<rp>(</rp><rt>%s</rt><rp>)</rp></ruby>\n", pys.char, p)
+			}
+		}
 	}
 }
